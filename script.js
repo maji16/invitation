@@ -51,14 +51,9 @@
 
   /* ---------------- Music ---------------- */
   const bgm = $("#bgm");
-  const musicBtn = $("#musicBtn");
-  const setMusicUI = (on) => musicBtn.classList.toggle("playing", on);
   bgm.volume = 0.7;
-
-  musicBtn.addEventListener("click", () => {
-    if (bgm.paused) { bgm.play().then(() => setMusicUI(true)).catch(() => {}); }
-    else { bgm.pause(); setMusicUI(false); }
-  });
+  // If the file can't be found/decoded, this shows in the browser console (F12).
+  bgm.addEventListener("error", () => console.warn("Music file failed to load:", bgm.src));
   // Pause music when the guest leaves the tab/app, resume when they return.
   let wasPlaying = false;
   document.addEventListener("visibilitychange", () => {
@@ -90,13 +85,12 @@
     envelope.classList.add("open");
 
     // play() is called directly inside the tap, so browsers allow the sound.
-    bgm.play().then(() => setMusicUI(true)).catch(() => setMusicUI(false));
+    bgm.play().catch((err) => console.warn("Music could not play:", err));
 
     setTimeout(() => {
       document.body.classList.remove("locked");
       window.scrollTo(0, 0);
       cover.classList.add("done");
-      musicBtn.hidden = false;
       startReveal();
     }, 3000);
   });

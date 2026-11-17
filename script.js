@@ -25,7 +25,7 @@
     mapQuery: "Pusat Islam UMS Kota Kinabalu",
 
     // Auto-scroll speed in pixels per second. Higher = faster. Set to 0 to turn it off.
-    autoScrollSpeed: 30,
+    autoScrollSpeed: 50,
   };
   /* -------------------------------------------- */
 

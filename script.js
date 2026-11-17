@@ -78,7 +78,7 @@
   const cover = $("#cover");
   let opened = false;
 
-  envelope.addEventListener("click", () => {
+  function openInvite() {
     if (opened) return;
     opened = true;
 
@@ -93,7 +93,12 @@
       cover.classList.add("done");
       startReveal();
     }, 3000);
-  });
+  }
+
+  // Listen on the whole cover (not just the envelope) so any tap opens it,
+  // with a touchend fallback for phones. The "opened" flag stops double-firing.
+  cover.addEventListener("click", openInvite);
+  cover.addEventListener("touchend", openInvite, { passive: true });
 
   /* ---------------- Countdown ---------------- */
   const target = new Date(CONFIG.eventStart).getTime();
@@ -148,6 +153,9 @@
   const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   if (!reduce) {
     const box = $("#butterflies");
+    const setW = () => box.style.setProperty("--w", box.clientWidth + "px");
+    setW();
+    window.addEventListener("resize", setW);
     const count = window.innerWidth < 600 ? 5 : 8;
     for (let i = 0; i < count; i++) {
       const el = document.createElement("div");

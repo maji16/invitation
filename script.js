@@ -23,6 +23,9 @@
 
     // Search text for the map buttons
     mapQuery: "Pusat Islam UMS Kota Kinabalu",
+
+    // Auto-scroll speed in pixels per second. Higher = faster. Set to 0 to turn it off.
+    autoScrollSpeed: 30,
   };
   /* -------------------------------------------- */
 
@@ -54,6 +57,24 @@
   bgm.volume = 0.7;
   // If the file can't be found/decoded, this shows in the browser console (F12).
   bgm.addEventListener("error", () => console.warn("Music file failed to load:", bgm.src));
+
+  // Start downloading the song straight away, while the guest is looking at the envelope.
+  bgm.load();
+
+  let musicOn = false; // becomes true once the song is really playing
+  bgm.addEventListener("playing", () => { musicOn = true; });
+  bgm.addEventListener("pause", () => { musicOn = false; });
+
+  function startMusic() {
+    const p = bgm.play();
+    if (p && p.catch) p.catch((err) => console.warn("Music could not play yet:", err));
+  }
+  // Safety net: if the phone blocked or delayed the song, try again on the next tap.
+  function retryMusic() {
+    if (!opened || musicOn || document.hidden) return;
+    startMusic();
+  }
+  ["click", "touchend", "keydown"].forEach((ev) => document.addEventListener(ev, retryMusic, true));
   // Pause music when the guest leaves the tab/app, resume when they return.
   let wasPlaying = false;
   document.addEventListener("visibilitychange", () => {
@@ -85,14 +106,50 @@
     envelope.classList.add("open");
 
     // play() is called directly inside the tap, so browsers allow the sound.
-    bgm.play().catch((err) => console.warn("Music could not play:", err));
+    startMusic();
 
     setTimeout(() => {
       document.body.classList.remove("locked");
       window.scrollTo(0, 0);
       cover.classList.add("done");
       startReveal();
+      setTimeout(startAutoScroll, 2500); // let the first screen play before scrolling
     }, 3000);
+  }
+
+  /* ---------------- Gentle auto-scroll ---------------- */
+  // Scrolls slowly by itself. The moment the guest touches, scrolls or presses a key,
+  // it stops for good and the guest is in control.
+  function startAutoScroll() {
+    const speed = CONFIG.autoScrollSpeed; // pixels per second
+    if (!speed || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    const events = ["wheel", "touchstart", "touchmove", "pointerdown", "mousedown", "keydown"];
+    let stopped = false;
+    let pos = window.scrollY;
+    let expected = Math.round(pos);
+    let last = performance.now();
+
+    function stop() {
+      stopped = true;
+      events.forEach((ev) => window.removeEventListener(ev, stop));
+    }
+    events.forEach((ev) => window.addEventListener(ev, stop, { passive: true }));
+
+    function step(now) {
+      if (stopped) return;
+      const dt = Math.min(now - last, 100) / 1000;
+      last = now;
+      // If something else moved the page (e.g. dragging the scrollbar), hand control back.
+      if (Math.abs(window.scrollY - expected) > 3) { stop(); return; }
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      pos += speed * dt;
+      if (pos >= max) { window.scrollTo(0, max); stop(); return; }
+      expected = Math.round(pos);
+      window.scrollTo(0, expected);
+      requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
   }
 
   // Listen on the whole cover (not just the envelope) so any tap opens it,
